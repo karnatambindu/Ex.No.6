@@ -77,7 +77,8 @@ print("JSON Output:", load_data(json_filename))
 ```
 
 # Sample Output:
-<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/9d4db1fe-ffa5-42fe-898a-6f4d067d8983" />
+<img width="1312" height="687" alt="Screenshot 2025-11-05 131638" src="https://github.com/user-attachments/assets/236d18ed-e6c2-4a32-8357-18a372152f88" />
+
 
 
 
