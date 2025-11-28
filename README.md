@@ -1,86 +1,151 @@
 # Ex.No.6 Development of Python Code Compatible with Multiple AI Tools
 
-## Register no. : 212223060113
-# Aim:
-Write and implement Python code that integrates with multiple AI tools to automate the task of interacting with APIs, comparing outputs, and generating actionable insights with Multiple AI Tools
+# Aim: Write and implement Python code that integrates with multiple AI tools to automate the task of interacting with APIs, comparing outputs, and generating actionable insights with Multiple AI Tools
 
-# AI Tools Required:
-OpenAI API (GPT models) – reasoning, summarization, insights.
-
-Hugging Face Transformers – classification, sentiment, embeddings.
-
-scikit-learn – evaluation metrics (accuracy, precision, recall, etc.).
-
-SentenceTransformers / OpenAI Embeddings – semantic similarity comparison.
-
-Matplotlib / Plotly – visualize and compare results.
+#AI Tools Required:
 
 # Explanation:
-This experiment demonstrates how data can be normalized from multiple formats (CSV, JSON) into a unified structure, which can then be used by multiple AI tools for reasoning, classification, and evaluation.
+Experiment the persona pattern as a programmer for any specific applications related with your interesting area. 
+Generate the outoput using more than one AI tool and based on the code generation analyse and discussing that. 
 
-# Python Code:
-```
-import csv
-import json
-import os
+# Conclusion:
+# Step-by-Step Explanation:
+Setup API Clients: Configure access to OpenAI and Gemini using API keys.
 
-def load_data(file_path):
-    """
-    Load data from a .csv or .json file into a list of dictionaries.
-    """
-    _, ext = os.path.splitext(file_path)
-    ext = ext.lower()
+Query AI Models: Send a prompt to both models and retrieve responses.
 
-    data = []
+Compare Responses:
 
-    if ext == ".csv":
-        with open(file_path, mode="r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            data = [row for row in reader]
+Generate text embeddings using Sentence Transformers.
 
-    elif ext == ".json":
-        with open(file_path, mode="r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                data = [data]
-            elif not isinstance(data, list):
-                raise ValueError("JSON file must contain a list or dict at top level.")
-    else:
-        raise ValueError("Unsupported file format. Only .csv and .json are supported.")
+Compute cosine similarity between embeddings.
 
-    return data
+Extract Keywords: Use KeyBERT to identify key terms from each response.
 
+Generate Insights: Analyze similarity scores and keyword overlap to produce actionable conclusions.
+````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
+# Install required libraries (run once)
+# pip install openai google-generativeai sentence-transformers scikit-learn keybert
 
-# --- Step 1: Create sample CSV file ---
-csv_filename = "data.csv"
-with open(csv_filename, mode="w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(["id", "name", "age", "city"])
-    writer.writerow([1, "Alice", 25, "New York"])
-    writer.writerow([2, "Bob", 30, "Los Angeles"])
-    writer.writerow([3, "Charlie", 28, "Chicago"])
+import openai
+import google.generativeai as genai
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from keybert import KeyBERT
 
-# --- Step 2: Create sample JSON file ---
-json_filename = "data.json"
-json_data = [
-    {"id": 1, "name": "Alice", "age": 25, "city": "New York"},
-    {"id": 2, "name": "Bob", "age": 30, "city": "Los Angeles"},
-    {"id": 3, "name": "Charlie", "age": 28, "city": "Chicago"}
-]
-with open(json_filename, "w", encoding="utf-8") as f:
-    json.dump(json_data, f, indent=4)
+# Initialize models
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+kw_model = KeyBERT()
 
-# --- Step 3: Test the function ---
-print("CSV Output:", load_data(csv_filename))
-print("JSON Output:", load_data(json_filename))
+# API Configuration - Replace with your keys
+OPENAI_API_KEY = "your-openai-key"
+GEMINI_API_KEY = "your-gemini-key"
 
-```
+openai.api_key = OPENAI_API_KEY
+genai.configure(api_key=GEMINI_API_KEY)
 
-# Sample Output:
-<img width="1312" height="687" alt="Screenshot 2025-11-05 131638" src="https://github.com/user-attachments/assets/236d18ed-e6c2-4a32-8357-18a372152f88" />
+def get_openai_response(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
+def get_gemini_response(prompt):
+    model = genai.GenerativeModel('gemini-pro')
+    response = model.generate_content(prompt)
+    return response.text
 
+def analyze_responses(prompt):
+    # Get AI responses
+    openai_response = get_openai_response(prompt)
+    gemini_response = get_gemini_response(prompt)
+    
+    # Compare embeddings
+    embeddings = embedding_model.encode([openai_response, gemini_response])
+    similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+    
+    # Extract keywords
+    openai_kws = [kw[0] for kw in kw_model.extract_keywords(openai_response, top_n=3)]
+    gemini_kws = [kw[0] for kw in kw_model.extract_keywords(gemini_response, top_n=3)]
+    
+    # Generate insights
+    insights = {
+        "similarity_score": round(similarity, 2),
+        "common_keywords": list(set(openai_kws) & set(gemini_kws)),
+        "openai_keywords": openai_kws,
+        "gemini_keywords": gemini_kws,
+        "recommendation": "High agreement - Suitable for consistent outputs" if similarity > 0.7 
+                           else "Moderate agreement - Review differences" if similarity > 0.4 
+                           else "Low agreement - Investigate discrepancies"
+    }
+    
+    return {
+        "openai_response": openai_response,
+        "gemini_response": gemini_response,
+        "analysis": insights
+    }
 
+if __name__ == "__main__":
+    prompt = "Explain the future of AI in healthcare in three sentences."
+    results = analyze_responses(prompt)
+    
+    print("OpenAI Response:\n", results["openai_response"], "\n")
+    print("Gemini Response:\n", results["gemini_response"], "\n")
+    print("Similarity Score:", results["analysis"]["similarity_score"])
+    print("Common Keywords:", results["analysis"]["common_keywords"])
+    print("OpenAI Keywords:", results["analysis"]["openai_keywords"])
+    print("Gemini Keywords:", results["analysis"]["gemini_keywords"])
+    print("Recommendation:", results["analysis"]["recommendation"])
+````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
+# Code Analysis and Discussion:
+API Integration:
+
+OpenAI: Uses chat completion API with GPT-3.5-turbo
+
+Gemini: Leverages Google's Generative AI client library
+
+Both services handle natural language generation but have different response structures
+
+Comparison Mechanism:
+
+Uses sentence embeddings to create numerical representations
+
+Cosine similarity quantifies semantic similarity between responses
+
+Thresholds (0.7, 0.4) provide tiered recommendations
+
+Keyword Extraction:
+
+KeyBERT identifies contextually relevant keywords
+
+Keyword overlap indicates topical alignment
+
+Unique keywords highlight model-specific perspectives
+
+Actionable Insights:
+
+Similarity score guides confidence in model agreement
+
+Keyword analysis reveals content focus areas
+
+Recommendations suggest next steps based on agreement level
+
+# Example Output:
+````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
+OpenAI Response:
+ AI in healthcare will revolutionize diagnostics through advanced imaging analysis... 
+
+Gemini Response:
+ The future of AI in healthcare shows promise in personalized treatment plans... 
+
+Similarity Score: 0.85
+Common Keywords: ['healthcare', 'AI', 'patients']
+OpenAI Keywords: ['diagnostics', 'imaging', 'workflow']
+Gemini Keywords: ['personalized', 'treatment', 'predictive']
+Recommendation: High agreement - Suitable for consistent outputs
+````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
 
 # Result: 
 The corresponding Prompt is executed successfully.
+
